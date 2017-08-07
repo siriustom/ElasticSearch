@@ -20,7 +20,7 @@ const (
 	//PROJECT_ID = "around-xxx"
 	//BT_INSTANCE = "around-post"
 	// Needs to update this URL if you deploy it to cloud.
-	ES_URL = ""
+	ES_URL = "http://54.218.64.118:9200"
 )
 
 type Location struct {
@@ -36,6 +36,39 @@ type Post struct {
 }
 
 func main() {
+	// Create a client
+	client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	// Use the IndexExists service to check if a specified index exists.
+	exists, err := client.IndexExists(INDEX).Do()
+	if err != nil {
+		panic(err)
+	}
+	if !exists {
+		// Create a new index.
+		mapping := `{
+                    "mappings":{
+                           "post":{
+                                  "properties":{
+                                         "location":{
+                                                "type":"geo_point"
+                                         }
+                                  }
+                           }
+                    }
+             }
+             `
+		_, err := client.CreateIndex(INDEX).Body(mapping).Do()
+		if err != nil {
+			// Handle error
+			panic(err)
+		}
+	}
+
 	fmt.Println("started-service")
 	http.HandleFunc("/post", handlerPost)
 	http.HandleFunc("/search", handlerSearch)
@@ -54,7 +87,8 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Post received: %s\n", p.Message)
 
-	client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
+	// Create a client
+	es_client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
 	if err != nil {
 		panic(err)
 		return
@@ -62,8 +96,8 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 
 	id := uuid.New()
 
-	// Add a document to the index
-	_, err = client.Index().
+	// Save it to index
+	_, err = es_client.Index().
 		Index(INDEX).
 		Type(TYPE).
 		Id(id).
@@ -71,9 +105,10 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 		Refresh(true).
 		Do()
 	if err != nil {
-		// Handle error
 		panic(err)
+		return
 	}
+
 	fmt.Printf("Post is saved to Index: %s\n", p.Message)
 }
 

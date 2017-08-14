@@ -12,6 +12,7 @@ import (
 	"cloud.google.com/go/bigtable"
 	elastic "gopkg.in/olivere/elastic.v3"
 	"github.com/pborman/uuid"
+	"strings"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	PROJECT_ID = "windy-ripsaw-176022"
 	BT_INSTANCE = "around-post"
 	// Needs to update this URL if you deploy it to cloud.
-	ES_URL = "http://54.218.64.118:9200"
+	ES_URL = "http://54.187.30.200:9200"
 )
 
 type Location struct {
@@ -130,12 +131,13 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 	mut.Set("location", "lat", t, []byte(strconv.FormatFloat(p.Location.Lat, 'f', -1, 64)))
 	mut.Set("location", "lon", t, []byte(strconv.FormatFloat(p.Location.Lon, 'f', -1, 64)))
 
+
 	err = tbl.Apply(ctx, id, mut)
 	if err != nil {
 		panic(err)
 		return
 	}
-	fmt.Printf("Post is saved to BigTable: %s\n", p.Message
+	fmt.Printf("Post is saved to BigTable: %s\n", p.Message)
 }
 
 func handlerSearch(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +191,9 @@ func handlerSearch(w http.ResponseWriter, r *http.Request) {
 		p := item.(Post)
 		fmt.Printf("Post by %s: %s at lat %v and lon %v\n", p.User, p.Message, p.Location.Lat, p.Location.Lon)
 		// TODO(vincent): Perform filtering based on keywords such as web spam etc.
-		ps = append(ps, p)
+		if strings.Contains(p.Message, "Ass") == false {
+			ps = append(ps, p)
+		}
 
 	}
 	js, err := json.Marshal(ps)

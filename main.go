@@ -23,7 +23,7 @@ const (
 	PROJECT_ID = "windy-ripsaw-176022"
 	BT_INSTANCE = "around-post"
 	// Needs to update this URL if you deploy it to cloud.
-	ES_URL = "http://54.187.30.200:9200"
+	ES_URL = "http://54.200.143.121:9200"
 )
 
 type Location struct {
